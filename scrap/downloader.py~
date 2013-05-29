@@ -1,0 +1,81 @@
+import requests
+from requests import async
+import time
+
+headers={'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+         'Accept-Charset':'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+         'Accept-Encoding':'gzip, deflate',
+         'Accept-Language':'en-us,en;q=0.5',
+         'Connection':'keep-alive',
+         'User-Agent':'Mozilla/5.0 (Ubuntu; X11; Linux i686; rv:8.0) Gecko/20100101 Firefox/8.0'}
+
+# add Origin and Referer Headers when bot is initialised
+
+class Downloader:
+    """ takes a list of urls and returns responses  """
+    def __init__(self,url_list=None,max_concurrent_requests=10):
+        self.max_concurrent_requests=max_concurrent_requests
+        self.req_headers=headers
+        #self.responses={}   #dict where url is key and response object is value
+        #self.requests={}   #dict where url is key and request object is value
+        if url_list:
+            self.url_list=url_list
+        self.processed_urls={}      # dict where url is key and HTTP status code is value
+        self.wait=None              #duration for which to wait between
+        
+    def addHeaders(self,header_dict):
+        for h in header_dict:
+            self.req_headers[h]=header_dict[h]
+
+    def replaceHeaders(self,header_dict):
+        self.req_headers=header_dict
+
+    def setMaxConcurrentRequests(self,num):
+        self.max_concurrent_requests=num
+
+    def addUrls(self,url_list):             #append urls to url_list
+        self.url_list.extend(url_list)
+
+    def putUrls(self,url_list,max_concurrent_requests=10):      #replace url_list with the given list
+        self.url_list=url_list
+        self.max_concurrent_requests=max_concurrent_requests
+
+    def download(self):
+        self.duration=0
+        start=time.time()
+        urls=list(self.url_list)[:500]
+        mark=500
+        while urls:
+            self.requests=[async.get(u) for u in urls]
+            for r in self.requests:
+                r.headers=self.req_headers
+            start=time.time()               # used to find duration for requets to complete
+            self.responses = async.map(self.requests,size=self.max_concurrent_requests)
+            self.duration=time.time()-start
+            self.result={}
+            self.failed_urls=[]
+            for response in self.responses:
+                url=response.request.url
+                if response.ok:
+                    self.result[url]=(response.status_code,response.content)
+                else:
+                    self.failed_urls.append(url)
+            urls=list(self.url_list)[mark:mark+500]
+            mark+=500
+        finish=time.time()
+        self.duration=finish-start
+        return self.result
+        
+                
+        
+        
+
+
+    
+
+    
+
+    
+    
+        
+        

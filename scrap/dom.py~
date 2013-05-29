@@ -1,0 +1,73 @@
+import lxml.html
+import urllib2
+
+class DOM:
+
+    def __init__(self,url=None,string=None):
+        if url:
+            html=urllib2.urlopen(url).read()
+        else:
+            html=string
+        self.html=html
+        self.document=lxml.html.document_fromstring(html)
+       
+
+    def getNodesWithXpath(self,xpath):
+        self.nodes=self.document.xpath(xpath)
+        return self.nodes[:]
+
+    def getLinksWithXpath(self,xpath):
+        self.nodes=self.document.xpath(xpath)
+        links=[(anchor.text_content(),anchor.get('href')) for anchor in self.nodes]
+        return links
+	
+	def getImgUrlWithXpath(self,xpath):
+        self.nodes=self.document.xpath(xpath)
+        urls=[img.get('src') for img in self.nodes]
+        return urls
+    
+    def parseTBody(self,tbody_xpath):
+        """ takes <tbody> of a table where each <tr> has 2 <td> and returns a dict where key is first <td>'s content and value is second <td>'s content """
+        data={}
+        tbody=self.document.xpath(tbody_xpath)[0]
+        trs=tbody.xpath('tr')
+        for tr in trs:
+            tds=tr.xpath('td')
+            key=tds[0].text_content().strip(':\n\t ').lower()
+            value=tds[1].text_content().strip(':\n\t ')
+            data[key]=value
+        return data
+
+
+
+ 
+class XMLNode:
+
+    def __init__(self,name,text=None,dictionary=None):
+        self.children=[]
+        self.name=name   
+        self.node=lxml.etree.Element(name)
+        if text:
+            self.text=text
+            self.node.text=text
+        if dictionary:
+            for key in dictionary:
+                self.createChildNode(key,str(dictionary[key]))
+
+    def createChildNode(self,name,text=None):
+        if text:
+            childnode=XMLNode(name,text)
+        else:
+            childnode=XMLNode(name)
+        self.node.append(childnode.node)
+        self.children.append(childnode)
+        return childnode
+
+    def createChildNodes(self,dictionary):
+        for key in dictionary:
+            self.createChildNode(key,str(dictionary[key]))
+
+    def nodeToString(self,fp=None):
+        string=lxml.etree.tostring(self.node,pretty_print=True)
+        return string
+                
